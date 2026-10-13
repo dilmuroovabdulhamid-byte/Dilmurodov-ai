@@ -1,0 +1,39 @@
+const { GoogleGenAI } = require('@google/genai');
+
+exports.handler = async function(event, context) {
+    if (event.httpMethod !== 'POST') {
+        return { statusCode: 405, body: JSON.stringify({ error: 'Method Not Allowed' }) };
+    }
+
+    try {
+        const { message, apiKey: clientApiKey } = JSON.parse(event.body);
+        const apiKey = clientApiKey || process.env.GEMINI_API_KEY;
+
+        if (!apiKey) {
+            return {
+                statusCode: 400,
+                body: JSON.stringify({ error: "API kalit kiritilmagan. Yuqoridagi 'API Kalit' tugmasini bosing." })
+            };
+        }
+
+        if (!message) {
+            return { statusCode: 400, body: JSON.stringify({ error: "Xabar bo'sh bo'lishi mumkin emas." }) };
+        }
+
+        const ai = new GoogleGenAI({ apiKey });
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: message,
+        });
+
+        return {
+            statusCode: 200,
+            body: JSON.stringify({ reply: response.text })
+        };
+    } catch (error) {
+        return {
+            statusCode: 500,
+            body: JSON.stringify({ error: error.message || "Sun'iy intellektga ulanishda xatolik yuz berdi." })
+        };
+    }
+};
